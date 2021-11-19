@@ -1,0 +1,389 @@
+---
+title: "Ejemplos Capítulo 2"
+author: "Luis Ramón Munive Hernández"
+date: "11/15/2021"
+output: 
+  pdf_document:
+    keep_tex: true
+---
+
+Ejemplo 2.2.1 Condiciones médicas crónicas
+
+```{r}
+town <- c(0,1,1,0,2,3,0,1,1,1,1,2,0,1,3,0,1,2,1,3,3,4,1,3,2,0)
+```
+
+```{r}
+country <- c(2,0,3,0,0,1,1,1,1,0,0,2,2,0,1,2,0,0,1,1,1,0,2)
+```
+
+```{r}
+library(knitr)
+library(kableExtra)
+kable(x = t(country),
+      format = "latex",
+      digits = 5,
+      align = "c", booktabs = TRUE, escape = FALSE) %>% 
+  kable_styling(position = "center", latex_options = "hold_position")
+```
+
+$n =$ `r length(country)`, $\text{media} =$ `r mean(country)`, $\text{desviación estándar} =$ `r sd(country)`, $\text{varianza}=$ `r var(country)` .
+
+```{r}
+kable(x = t(town),
+      format = "latex",
+      digits = 5,
+      align = "c", booktabs = TRUE, escape = FALSE) %>% 
+  kable_styling(position = "center", latex_options = "hold_position")
+```
+
+$n =$ `r length(town)`, $\text{media} =$ `r mean(town)`, $\text{desviación estándar} =$ `r sd(town)`, $\text{varianza}=$ `r var(town)` .
+
+```{r}
+estimacionesEjemplo1 <- function(grupo1, grupo2){
+  K1 <- length(grupo1)
+  K2 <- length(grupo2)
+  N <- K1 + K2
+  
+  # Estimación del modelo H0
+  theta <- (sum(grupo1) + sum(grupo2)) / N
+  
+  # Estimación del modelo H1
+  theta1 <- sum(grupo1) / K1
+  theta2 <- sum(grupo2) / K2
+  
+  resultados <- data.frame(matrix(data = c(theta, theta,
+                                           theta1, theta2), nrow = 2, byrow = TRUE))
+  colnames(resultados) = c("theta_1", "theta_2")
+  rownames(resultados) = c("Modelo H0", "Modelo H1")
+  return(resultados)
+}
+```
+
+```{r}
+est1 <- estimacionesEjemplo1(grupo1 = town, grupo2 = country)
+```
+
+```{r}
+kable(x = est1,
+      format = "latex",
+      digits = 5,
+      col.names = c("$\\theta_1$", "$\\theta_2$"),
+      align = "c", booktabs = TRUE, escape = FALSE) %>% 
+  kable_styling(position = "center", latex_options = "hold_position")
+```
+
+```{r}
+residuales.town <- data.frame(Y = sort(unique(town)),
+                              Frecuencia = as.numeric(table(town)),
+                              Std.Res.H0 = (sort(unique(town)) - est1[1,1]) / sqrt(est1[1,1]),
+                              Std.Res.H1 = (sort(unique(town)) - est1[2,1]) / sqrt(est1[2,1]))
+
+residuales.country <- data.frame(Y = sort(unique(country)),
+                              Frecuencia = as.numeric(table(country)),
+                              Std.Res.H0 = (sort(unique(country)) - est1[1,2]) / sqrt(est1[1,2]),
+                              Std.Res.H1 = (sort(unique(country)) - est1[2,2]) / sqrt(est1[2,2]))
+```
+
+```{r}
+kable(x = residuales.town,
+      format = "latex",
+      digits = 5,
+      col.names = c("$Y$", "Frecuencia", "Residuales estandarizados $H_0$", "Residuales estandarizados $H_1$"),
+      align = "c", booktabs = TRUE, escape = FALSE) %>% 
+  kable_styling(position = "center", latex_options = "hold_position")
+```
+
+```{r}
+kable(x = residuales.country,
+      format = "latex",
+      digits = 5,
+      col.names = c("$Y$", "Frecuencia", "Residuales estandarizados $H_0$", "Residuales estandarizados $H_1$"),
+      align = "c", booktabs = TRUE, escape = FALSE) %>% 
+  kable_styling(position = "center", latex_options = "hold_position")
+```
+
+```{r}
+res.est.town <- data.frame(Residuales.H0 = rep(residuales.town$Std.Res.H0, residuales.town$Frecuencia),
+                           Residuales.H1 = rep(residuales.town$Std.Res.H1, residuales.town$Frecuencia))
+
+res.est.country <- data.frame(Residuales.H0 = rep(residuales.country$Std.Res.H0, residuales.country$Frecuencia),
+                              Residuales.H1 = rep(residuales.country$Std.Res.H1, residuales.country$Frecuencia))
+```
+
+```{r Residuales town H0, fig.width=5, fig.height=3}
+library(ggplot2)
+library(latex2exp)
+
+ggplot(data = res.est.town, mapping = aes(Residuales.H0)) +
+  geom_dotplot(method = "histodot") +
+  xlab(label = "Residuales estandarizados") +
+  ylab(label = "Frecuencia relativa") +
+  ggtitle(label = TeX("Residuales, grupo: zonas urbanas, modelo: $H_0$")) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r Residuales town H1, fig.width=5, fig.height=3}
+ggplot(data = res.est.town, mapping = aes(Residuales.H1)) +
+  geom_dotplot(method = "histodot") +
+  xlab(label = "Residuales estandarizados") +
+  ylab(label = "Frecuencia relativa") +
+  ggtitle(label = TeX("Residuales, grupo: zonas urbanas, modelo: $H_1$")) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r Residuales country H0, fig.width=5, fig.height=3}
+ggplot(data = res.est.country, mapping = aes(Residuales.H0)) +
+  geom_dotplot(method = "histodot") +
+  xlab(label = "Residuales estandarizados") +
+  ylab(label = "Frecuencia relativa") +
+  ggtitle(label = TeX("Residuales, grupo: zonas rurales, modelo: $H_0$")) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r Residuales country H1, fig.width=5, fig.height=3}
+ggplot(data = res.est.country, mapping = aes(Residuales.H1)) +
+  geom_dotplot(method = "histodot") +
+  xlab(label = "Residuales estandarizados") +
+  ylab(label = "Frecuencia relativa") +
+  ggtitle(label = TeX("Residuales, grupo: zonas rurales, modelo: $H_1$")) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Suma de residuales al cuadrado del modelo $H_0$.
+
+$\displaystyle\sum_{i=1}^m r_i^2 =$ `r sum(residuales.country$Frecuencia * residuales.country$Std.Res.H0^2) + sum(residuales.town$Frecuencia * residuales.town$Std.Res.H0^2)`.
+
+Suma de residuales al cuadrado del modelo $H_1$.
+
+$\displaystyle\sum_{i=1}^m r_i^2 =$ `r sum(residuales.country$Frecuencia * residuales.country$Std.Res.H1^2) + sum(residuales.town$Frecuencia * residuales.town$Std.Res.H1^2)`.
+
+Ejemplo 2.2.2 Peso al nacer y edad gestacional
+
+```{r}
+datos <- data.frame(Age = c(40,
+38,
+40,
+35,
+36,
+37,
+41,
+40,
+37,
+38,
+40,
+38,
+40,
+36,
+40,
+38,
+42,
+39,
+40,
+37,
+36,
+38,
+39,
+40), 
+Birthweight = c(2968,
+2795,
+3163,
+2925,
+2625,
+2847,
+3292,
+3473,
+2628,
+3176,
+3421,
+2975,
+3317,
+2729,
+2935,
+2754,
+3210,
+2817,
+3126,
+2539,
+2412,
+2991,
+2875,
+3231),
+Gender = c(rep("Boy", 12), rep("Girl", 12)))
+```
+
+```{r Birthweight vs age, fig.width=5, fig.height=3}
+library(ggplot2)
+
+ggplot(data = datos, mapping = aes(x = Age, y = Birthweight, col = Gender)) +
+  geom_point(size = 3) +
+  xlab(label = "Edad gestacional (semanas)") +
+  ylab(label = "Peso al nacer (gramos)") +
+  ggtitle(label = "Visualización de datos") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(name = "Género",
+                     labels = c('Niño', 'Niña'), 
+                     values = c("blue", "red"))
+```
+
+```{r}
+estimacionesEjemplo2 <- function(datos, variable.x, variable.y, variable.grupo, grupo1, grupo2){
+  X1 <- datos[datos[,variable.grupo] == grupo1, variable.x]
+  X2 <- datos[datos[,variable.grupo] == grupo2, variable.x]
+  Y1 <- datos[datos[,variable.grupo] == grupo1, variable.y]
+  Y2 <- datos[datos[,variable.grupo] == grupo2, variable.y]
+  
+  K <- length(X1)
+
+  S1.xy <- sum(X1 * Y1)
+  S1.x <- sum(X1)
+  S1.y <- sum(Y1)
+  S1.xx <- sum(X1 * X1)
+
+  S2.xy <- sum(X2 * Y2)
+  S2.x <- sum(X2)
+  S2.y <- sum(Y2)
+  S2.xx <- sum(X2 * X2)
+  
+  # Estimaciones para el modelo H_1
+  b1.H1 <- (K * S1.xy - S1.x * S1.y) / (K * S1.xx - S1.x^2)
+  a1.H1 <- mean(Y1) - b1.H1 * mean(X1)
+
+  b2.H1 <- (K * S2.xy - S2.x * S2.y) / (K * S2.xx - S2.x^2)
+  a2.H1 <- mean(Y2) - b2.H1 * mean(X2)
+  
+  S1 <- sum((Y1 - a1.H1 - b1.H1 * X1)^2) + sum((Y2 - a2.H1 - b2.H1 * X2)^2)
+  
+  # Estimaciones para el modelo H_0
+  b.H0 <- (K * (S1.xy + S2.xy) - ((S1.x * S1.y) + (S2.x * S2.y))) / (K * (S1.xx + S2.xx) - (S1.x^2 + S2.x^2))
+  
+  a1.H0 <- mean(Y1) - b.H0 * mean(X1)
+  a2.H0 <- mean(Y2) - b.H0 * mean(X2)
+  
+  S0 <- sum((Y1 - a1.H0 - b.H0 * X1)^2) + sum((Y2 - a2.H0 - b.H0 * X2)^2)
+  
+  resultados <- data.frame(matrix(data = c(a1.H0, a2.H0, b.H0, b.H0, S0,
+                                           a1.H1, a2.H1, b1.H1, b2.H1, S1), nrow = 2, byrow = TRUE))
+  colnames(resultados) = c("a_1", "a_2", "b_1", "b_2", "S_j")
+  rownames(resultados) = c("Modelo H0", "Modelo H1")
+  return(resultados)
+}
+```
+
+```{r}
+est <- estimacionesEjemplo2(datos = datos, variable.x = "Age", variable.y = "Birthweight", variable.grupo = "Gender", grupo1 = "Boy", grupo2 = "Girl")
+```
+
+```{r}
+library(knitr)
+library(kableExtra)
+kable(x = est,
+      format = "latex",
+      digits = 5,
+      col.names = c("$a_1$", "$a_2$", "$b_1$", "$b_2$", "$S_j$"),
+      #row.names = c("$H_0$", "$H_1$"),
+      align = "c", booktabs = TRUE, escape = FALSE) %>% 
+  kable_styling(position = "center", latex_options = "hold_position")
+```
+
+```{r}
+valores.ajustados <- data.frame(Gender = datos$Gender,
+                                Age = datos$Age,
+                                Birthweight = datos$Birthweight,
+                                FittedH_0 = c(est[1,1] + est[1,3] * datos[datos$Gender == "Boy",]$Age, est[1,2] + est[1,4] * datos[datos$Gender == "Girl",]$Age),
+                                FittedH_1 = c(est[2,1] + est[2,3] * datos[datos$Gender == "Boy",]$Age, est[2,2] + est[2,4] * datos[datos$Gender == "Girl",]$Age))
+valores.ajustados
+```
+
+```{r}
+residuales.H0 <- (valores.ajustados$Birthweight - valores.ajustados$FittedH_0) / sd(valores.ajustados$FittedH_0)
+residuales.H1 <- (valores.ajustados$Birthweight - valores.ajustados$FittedH_1) / sd(valores.ajustados$FittedH_1)
+
+residuales.plot <- data.frame(Std.Res.H0 = residuales.H0,
+                              Std.Res.H1 = residuales.H1,
+                              Fitted.H0 = valores.ajustados$FittedH_0,
+                              Fitted.H1 = valores.ajustados$FittedH_1,
+                              Age = datos$Age,
+                              Gender = datos$Gender)
+```
+
+```{r Residuals H0 vs Birthweight, fig.width=5, fig.height=3}
+library(latex2exp)
+ggplot(data = residuales.plot, mapping = aes(x = Fitted.H0, y = Std.Res.H0, col = Gender)) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0) +
+  xlab(label = "Valores ajustados de peso al nacer (gramos)") +
+  ylab(label = "Residuales estandarizados") +
+  ggtitle(label = TeX("Modelo $H_0$")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(name = "Género",
+                     labels = c('Niño', 'Niña'), 
+                     values = c("blue", "red"))
+```
+
+```{r Residuals H0 vs Age, fig.width=5, fig.height=3}
+ggplot(data = residuales.plot, mapping = aes(x = Age, y = Std.Res.H0, col = Gender)) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0) +
+  xlab(label = "Edad gestacional (semanas)") +
+  ylab(label = "Residuales estandarizados") +
+  ggtitle(label = TeX("Modelo $H_0$")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(name = "Género",
+                     labels = c('Niño', 'Niña'), 
+                     values = c("blue", "red"))
+```
+
+```{r QQ-Plot H0, fig.width=4, fig.height=4}
+ggplot(data = residuales.plot, aes(sample = Std.Res.H0)) +
+  stat_qq(size = 3) +
+  stat_qq_line() +
+  xlab(label = "Cuantiles normales") +
+  ylab(label = "Residuales estandarizados") +
+  ggtitle(label = TeX("Modelo $H_0$")) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r Residuals H1 vs Birthweight, fig.width=5, fig.height=3}
+ggplot(data = residuales.plot, mapping = aes(x = Fitted.H1, y = Std.Res.H1, col = Gender)) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0) +
+  xlab(label = "Edad gestacional (semanas)") +
+  ylab(label = "Residuales estandarizados") +
+  ggtitle(label = TeX("Modelo $H_1$")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(name = "Género",
+                     labels = c('Niño', 'Niña'), 
+                     values = c("blue", "red"))
+```
+
+```{r Residuals H1 vs Age, fig.width=5, fig.height=3}
+ggplot(data = residuales.plot, mapping = aes(x = Age, y = Std.Res.H1, col = Gender)) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0) +
+  xlab(label = "Edad gestacional (semanas)") +
+  ylab(label = "Residuales estandarizados") +
+  ggtitle(label = TeX("Modelo $H_1$")) +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(name = "Género",
+                     labels = c('Niño', 'Niña'), 
+                     values = c("blue", "red"))
+```
+
+```{r QQ-Plot H1, fig.width=4, fig.height=4}
+ggplot(data = residuales.plot, aes(sample = Std.Res.H1)) +
+  stat_qq(size = 3) +
+  stat_qq_line() +
+  xlab(label = "Cuantiles normales") +
+  ylab(label = "Residuales estandarizados") +
+  ggtitle(label = TeX("Modelo $H_1$")) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+$\dfrac{(\widehat{S}_0 - \widehat{S}_1) / (J-1)}{\widehat{S}_1 / (JK - 2J)} =$ `r (est$S_j[1] - est$S_j[2]) / (est$S_j[2] /  20)`
+
+```{r F value, fig.width=6, fig.height=4}
+library(sjPlot)
+dist_f(f = 0.19, deg.f1 = 1, deg.f2 = 20, )
+```
+

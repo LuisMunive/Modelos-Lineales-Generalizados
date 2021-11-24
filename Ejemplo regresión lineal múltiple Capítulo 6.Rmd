@@ -1,0 +1,228 @@
+---
+title: "Regresión lineal múltiple"
+author: "Luis Ramón Munive Hernández"
+date: "11/19/2021"
+output:
+  pdf_document:
+    keep_tex: yes
+---
+
+```{r}
+datos <- data.frame(Carbohydrate = c(33,
+40,
+37,
+27,
+30,
+43,
+34,
+48,
+30,
+38,
+50,
+51,
+30,
+36,
+41,
+42,
+46,
+24,
+35,
+37),
+Age = c(33,
+47,
+49,
+35,
+46,
+52,
+62,
+23,
+32,
+42,
+31,
+61,
+63,
+40,
+50,
+64,
+56,
+61,
+48,
+28),
+Weight = c(100,
+92,
+135,
+144,
+140,
+101,
+95,
+101,
+98,
+105,
+108,
+85,
+130,
+127,
+109,
+107,
+117,
+100,
+118,
+102),
+Protein = c(14,
+15,
+18,
+12,
+15,
+15,
+14,
+17,
+15,
+14,
+17,
+19,
+19,
+20,
+15,
+16,
+18,
+13,
+18,
+14))
+```
+
+```{r Visualización de datos, fig.width=3, fig.height=3, fig.keep='h'}
+library(ggplot2)
+ggplot(data = datos, mapping = aes(x = Age, y = Carbohydrate)) +
+  geom_point() +
+  xlab(label = "Edad") +
+  ylab(label = "Carbohidratos")
+
+ggplot(data = datos, mapping = aes(x = Weight, y = Carbohydrate)) +
+  geom_point() +
+  xlab(label = "Peso") +
+  ylab(label = "Carbohidratos")
+
+ggplot(data = datos, mapping = aes(x = Protein, y = Carbohydrate)) +
+  geom_point() +
+  xlab(label = "Proteína") +
+  ylab(label = "Carbohidratos")
+```
+
+```{r}
+y <- datos$Carbohydrate
+X <- as.matrix(cbind(rep(1, nrow(datos)), datos[,-1]))
+```
+
+```{r}
+b <- solve(t(X) %*% X) %*% (t(X) %*% y)
+b
+```
+
+$\boldsymbol{b} = \left(\boldsymbol{X}^T \boldsymbol{X}\right)^{-1} \boldsymbol{X}^T \boldsymbol{y} = [$ `r t(as.vector(b))` $]^T$
+
+$\boldsymbol{y}^T \boldsymbol{y} =$ `r t(y) %*% y`
+
+$N \overline{y}^2 =$ `r nrow(X) * mean(y)^2`
+
+$\boldsymbol{b}^T \boldsymbol{X}^T \boldsymbol{y} =$ `r (t(b) %*% t(X)) %*% y`
+
+Suma de cuadrados residual $=$ `r t(y) %*% y - (t(b) %*% t(X)) %*% y`
+
+```{r}
+N <- nrow(X)
+p <- ncol(X)
+sigma2.hat <- as.numeric(1 / (N - p) * t(y - X %*% b) %*% (y - X %*% b))
+sigma2.hat
+```
+
+$\widehat{\sigma}^2 = \dfrac{1}{N - p} \left(\boldsymbol{y} - \boldsymbol{X} \boldsymbol{b} \right)^T \left(\boldsymbol{y} - \boldsymbol{X} \boldsymbol{b} \right) =$ `r sigma2.hat`
+
+```{r}
+V.b <- sigma2.hat * solve(t(X) %*% X)
+V.b
+se.b <- sqrt(diag(V.b))
+se.b
+```
+
+```{r}
+library(knitr)
+library(kableExtra)
+kable(x = data.frame(termino = c("Constante", "Edad", "Peso", "Proteína"),
+                     bj = b,
+                     se = se.b),
+      format = "latex",
+      digits = 5,
+      row.names = FALSE,
+      col.names = c("Término", "$b_j$", "Error estándar"),
+      align = c("l", "r", "r"), booktabs = TRUE, escape = FALSE) %>%
+  kable_styling(position = "center", latex_options = "hold_position")
+```
+
+```{r}
+X0 <- X[,-2]
+b0 <- solve(t(X0) %*% X0) %*% (t(X0) %*% y)
+b0
+```
+
+$\boldsymbol{b}_0 =[$ `r b0` $]^T$
+
+$\boldsymbol{b}_0^T \boldsymbol{X}_0^T \boldsymbol{y} =$ `r (t(b0) %*% t(X0)) %*% y`
+
+Suma de cuadrados residual $=$ `r t(y) %*% y - (t(b0) %*% t(X0)) %*% y`
+
+```{r F value, fig.width=6, fig.height=4}
+library(sjPlot)
+dist_f(f = 38.359 / 35.47894, deg.f1 = 1, deg.f2 = 16)
+```
+
+```{r}
+y.hat <- X %*% b
+residual <- y - y.hat
+std.residual <- (y - y.hat) / sd(residual)
+
+H <- X %*% (solve(t(X) %*% X) %*% t(X))
+
+DFITS <- std.residual * sqrt(diag(H) / (1 - diag(H)))
+CookD <- (1 / p) * (diag(H) / (1 - diag(H))) * std.residual^2
+```
+
+```{r}
+diagnosticos <- data.frame(Observacion = c(1:nrow(datos)),
+                           Carbohidratos = y,
+                           Ajustado = y.hat,
+                           Residual = residual,
+                           Residual.est = std.residual,
+                           DFIT = DFITS,
+                           CookD = CookD)
+```
+
+```{r QQ-Plot, fig.width=3, fig.height=3}
+ggplot(data = diagnosticos, aes(sample = Residual.est)) +
+  stat_qq(size = 3) +
+  stat_qq_line() +
+  xlab(label = "Cuantiles normales") +
+  ylab(label = "Residuales estandarizados")
+```
+
+```{r Residuals, fig.width=3, fig.height=3}
+ggplot(data = diagnosticos, aes(x = Ajustado, y = Residual.est)) +
+  geom_point(size = 3) +
+  geom_hline(yintercept = 0) +
+  xlab(label = "Carbohidratos ajustados") +
+  ylab(label = "Residuales estandarizados")
+```
+
+```{r Cook`s Distance, fig.width=3, fig.height=3}
+ggplot(data = diagnosticos, aes(x = Observacion, y = CookD)) +
+  geom_point(size = 3) +
+  xlab(label = "Órden de la observación") +
+  ylab(label = "Distancia de Cook")
+```
+
+```{r DFITS, fig.width=3, fig.height=3}
+ggplot(data = diagnosticos, aes(x = Observacion, y = DFIT)) +
+  geom_point(size = 3) +
+  xlab(label = "Órden de la observación") +
+  ylab(label = "DFIT")
+```
+
